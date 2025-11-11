@@ -6,10 +6,29 @@ s3_buckets contains resource if {
     resource.type == "aws_s3_bucket"
 }
 
-# Check if encryption is configured in resource_changes
+# Helper to extract S3 bucket encryption configurations
+s3_encryption_configs contains resource if {
+    resource := input.resource_changes[_]
+    resource.type == "aws_s3_bucket_server_side_encryption_configuration"
+}
+
+# Extract bucket name from encryption config address
+get_bucket_address_from_encryption(encryption_resource) := bucket_address if {
+    # Extract bucket name from address like "aws_s3_bucket_server_side_encryption_configuration.example"
+    bucket_address := replace(encryption_resource.address, "_server_side_encryption_configuration", "")
+}
+
+# Check if encryption is configured inline (old style)
 has_encryption(resource) if {
     resource.change.after.server_side_encryption_configuration
     count(resource.change.after.server_side_encryption_configuration) > 0
+}
+
+# Check if encryption is configured as separate resource (new style)
+has_encryption(bucket) if {
+    encryption := s3_encryption_configs[_]
+    bucket_address := get_bucket_address_from_encryption(encryption)
+    bucket.address == bucket_address
 }
 
 # Get tags from resource
