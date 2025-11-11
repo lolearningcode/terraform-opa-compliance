@@ -1,6 +1,8 @@
 name: OPA Policy Compliance
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
